@@ -1,8 +1,8 @@
-import { dehydrate, QueryClient, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import Head from "next/head";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import Head from "next/head";
 import Posts from "../components/Posts";
+import { Button } from "@chakra-ui/react";
 /**
  * first find out how to get data from reddit api
  * then make a request
@@ -10,7 +10,7 @@ import Posts from "../components/Posts";
  * we're only making a GET request so it'll be easy
  * I want a form to search for a subreddit
  * when the form is submitted, it will make a request to the reddit api with the form's value
- * then get the response and store it in the useQuery hook
+ * then get the response and store it in the useState hook
  * it will have a loading, error, and actual content displayed
  * along with infinite gallery scrolling/loading?
  * clicking on an image will route to a more detailed page of the post or I could just route to the original link
@@ -27,34 +27,80 @@ import Posts from "../components/Posts";
  * clicking on an image goes to a post route with post component
  */
 
+/**
+ * TODO: move data fetching and storing logic to a custom hook
+ * TODO: clean up code and move into appropriate component
+ * TODO: fetch is returning same data, figure out how to clean up so we get new data on filter
+ * TODO: add infinite scrolling
+ *
+ */
+
 export default function Home() {
   const [posts, setPosts] = useState([]);
-  const [subreddit, setSubreddit] = useState("webdev");
+  const [subreddit, setSubreddit] = useState("");
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("hot");
+  const [isLoading, setIsLoading] = useState(null);
+  const [err, setErr] = useState(null);
+  const controller = new AbortController();
 
-  useEffect(() => {
-    // set state here r/{subreddit}/hot.json
-    // might set category too r/boobs/{category}.json
-    fetch(
-      "https://www.reddit.com/r/boobs/hot.json?restrict_sr=true&include_over_18=on&raw_json=1"
-    ).then((res) => {
-      if (res.status !== 200) {
-        console.warn("Warning: Something is wrong with the api.");
-        return;
-      }
-      res.json().then((data) => {
-        if (data != null) setPosts(data.data.children);
+  // console.log(posts);
+  const categories = ["hot", "top", "new", "best", "rising"];
+
+  const catButtons = categories.map((cat) => (
+    <Button
+      key={cat}
+      onClick={() => filterItem(cat)}
+      isActive={category === cat}
+    >
+      {cat}
+    </Button>
+  ));
+
+  const filterItem = (curCat) => {
+    const newItem = categories.find((newCat) => newCat === curCat);
+    setCategory(newItem);
+    if (subreddit) {
+      setErr(null);
+      getSubreddit();
+    } else {
+      setErr("Enter a subreddit");
+    }
+  };
+
+  const url = `https://www.reddit.com/r/${subreddit}/${category}.json?restrict_sr=true&include_over_18=on`;
+
+  const getSubreddit = async () => {
+    setIsLoading(true);
+    try {
+      const { data } = await axios.get(url, {
+        signal: controller.signal,
       });
-    });
-  }, [subreddit]);
+      setPosts(data.data.children);
+    } catch (e) {
+      console.log(e.message);
+    } finally {
+      setIsLoading(false);
+    }
+    return () => controller.abort();
+  };
 
-  // failed at using react-query, i think i did this right, but i kept getting no data
-  // const sub = useQuery(["subreddits"], getSubreddits)
-  // );
+  const handleChange = ({ target }) => {
+    setQuery(target.value);
+    setSubreddit(target.value);
+    setErr(null);
+  };
 
-  // const getSubreddits = async () => {
-  //   const response = await axios.get(`https://www.reddit.com/r/webdev.json`);
-  //   return response.data;
-  // };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (query !== "" && query.length > 0) {
+      setQuery("");
+      getSubreddit();
+    } else {
+      setErr("Enter a subreddit");
+    }
+  };
+
   return (
     <div>
       <Head>
@@ -64,7 +110,21 @@ export default function Home() {
       </Head>
 
       <main>
-        <Posts posts={posts} />
+        {err && <h2>{err}</h2>}
+        <h1>Get Subreddit Images and Videos!</h1>
+        <hr />
+        <form onSubmit={handleSubmit}>
+          <input type="text" value={query} onChange={handleChange} />
+        </form>
+        {catButtons}
+        <hr />
+        <div>Current Query: {query}</div>
+        <div>Current Sub: {subreddit}</div>
+        <div>Current Url: {url}</div>
+        <div>Current Category: {category} </div>
+        <hr />
+        <div>Results</div>
+        {isLoading ? <p>loading...</p> : <Posts posts={posts} />}
       </main>
     </div>
   );
