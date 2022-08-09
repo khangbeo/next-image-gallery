@@ -1,17 +1,29 @@
-// import Image from 'next/image'
+import Image from "next/image";
 
 const Thumbnail = ({ post }) => {
-  const { url, thumbnail_width, thumbnail_height, title } = post;
-  return <img src={url} alt={title} />;
+  const { url, title } = post;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt={title} />
+  );
 };
 
 const YoutubeEmbed = ({ post }) => {
   const {
-    secure_media: {
-      oembed: { thumbnail_url, thumbnail_height, thumbnail_width },
-    },
+    secure_media_embed: { content },
   } = post;
-  return <iframe className="h-full" src={thumbnail_url}></iframe>;
+
+  const newUrl = content.match(
+    /(?:https?:\/\/)?(www.youtube.com\/embed\/)(\w+)(\?\w+\=\w+\&\w+\;\w+\=\w)/
+  );
+  return (
+    <iframe
+      className="h-full w-full object-center"
+      height="315"
+      width="560"
+      src={`${newUrl}&autoplay=1`}
+    ></iframe>
+  );
 };
 
 const RedditVideo = ({ post }) => {
@@ -65,17 +77,17 @@ const Post = ({ post }) => {
 
   return (
     !isMedia(post.url) && (
-      <article className="card card-compact w-72 bg-neutral shadow-xl">
+      <article className="card card-compact w-96 bg-neutral shadow-xl">
         <a href={base_url + post.permalink} target="_blank" rel="noreferrer">
           <div className="h-96 overflow-hidden">
             {isImage(post.url) && <Thumbnail post={post} />}
             {isYoutube(post.url) && <YoutubeEmbed post={post} />}
             {isRedditVideo(post.url) && <RedditVideo post={post} />}
           </div>
-          <div className="card-body">
-            <h2 className="card-title text-base">{post.title}</h2>
-          </div>
         </a>
+        <div className="card-body">
+          <h2 className="card-title text-base">{post.title}</h2>
+        </div>
       </article>
     )
   );
