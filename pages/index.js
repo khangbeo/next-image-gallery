@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
 import Head from "next/head";
 import Posts from "../components/Posts";
 import Link from "next/link";
