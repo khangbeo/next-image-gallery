@@ -60,24 +60,27 @@ const Post = ({ post }) => {
     return !isImage(url) && !isRedditVideo(url) && !isYoutube(url);
   }
 
-  if (isYoutube(post.url)) {
+  if (isMedia(post.url)) {
     console.log(post);
   }
 
-  /** make a clickable post
+  console.log(isMedia(post.url));
+  /** make a clickable post - done
    *
    * Data to get:
    * title
    * thumbnail
    * url
-   * votes
-   * author
    *
+   * up votes
+   * hearts/save/favorite
+   * author
+   * when it was created
    */
 
   return (
     !isMedia(post.url) && (
-      <article className="card card-compact w-96 bg-neutral shadow-xl">
+      <article className="card card-compact w-72 bg-neutral shadow-xl">
         <a href={base_url + post.permalink} target="_blank" rel="noreferrer">
           <div className="h-96 overflow-hidden">
             {isImage(post.url) && <Thumbnail post={post} />}

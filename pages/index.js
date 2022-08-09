@@ -2,32 +2,23 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Head from "next/head";
 import Posts from "../components/Posts";
-
+import Link from "next/link";
 /**
- * first find out how to get data from reddit api
- * then make a request
- * how? using react-query and axios
- * we're only making a GET request so it'll be easy
- * I want a form to search for a subreddit
- * when the form is submitted, it will make a request to the reddit api with the form's value
- * then get the response and store it in the useState hook
- * it will have a loading, error, and actual content displayed
- * along with infinite gallery scrolling/loading?
- * clicking on an image will route to a more detailed page of the post or I could just route to the original link
- *
+ * first find out how to get data from reddit api - done
+ * then make a request - done
+ * how? using axios - done
+ * we're only making a GET request so it'll be easy - done
+ * I want a form to search for a subreddit - done
+ * when the form is submitted, it will make a request to the reddit api with the form's value - done
+ * then get the response and store it in the useState hook - done
+ * it will have a loading, error, and actual content displayed - done
+ * along with infinite scrolling/loading?
+ * clicking on an image opens a modal with more detailed image
  *
  * Nice to have:
  * save the subreddit in a store and show it under the search as a recent search item
  * also have popular subreddits somewhere on the app
  *
- * data fetching at index.js
- * then pass it down to form component
- * after fetching, it gets passed up
- * then data passed down to posts component
- * clicking on an image goes to a post route with post component
- */
-
-/**
  * TODO: move data fetching and storing logic to a custom hook
  * TODO: clean up code and move into appropriate component
  * TODO: fetch is returning same data, figure out how to clean up so we get new data on filter
@@ -39,36 +30,35 @@ export default function Home() {
   const [posts, setPosts] = useState([]);
   const [subreddit, setSubreddit] = useState("");
   const [query, setQuery] = useState("");
-  // const [category, setCategory] = useState("hot");
+  const [category, setCategory] = useState("hot");
   const [isLoading, setIsLoading] = useState(null);
   const [err, setErr] = useState(null);
   const controller = new AbortController();
 
-  // console.log(posts);
-  // const categories = ["hot", "top", "new", "best", "rising"];
+  const categories = ["hot", "top", "new", "best", "rising"];
 
-  // const catButtons = categories.map((cat) => (
-  //   <Button
-  //     key={cat}
-  //     onClick={() => filterItem(cat)}
-  //     isActive={category === cat}
-  //   >
-  //     {cat}
-  //   </Button>
-  // ));
+  const catButtons = categories.map((cat) => (
+    <button
+      className={`btn ${category === cat && "btn-active"} rounded-full mr-4`}
+      key={cat}
+      onClick={() => filterItem(cat)}
+    >
+      {cat}
+    </button>
+  ));
 
-  // const filterItem = (curCat) => {
-  //   const newItem = categories.find((newCat) => newCat === curCat);
-  //   setCategory(newItem);
-  //   if (subreddit) {
-  //     setErr(null);
-  //     getSubreddit();
-  //   } else {
-  //     setErr("Enter a subreddit");
-  //   }
-  // };
+  const filterItem = (curCat) => {
+    const newItem = categories.find((newCat) => newCat === curCat);
+    setCategory(newItem);
+    if (subreddit) {
+      setErr(null);
+      getSubreddit();
+    } else {
+      setErr("Enter a subreddit");
+    }
+  };
 
-  const url = `https://www.reddit.com/r/${subreddit}/hot.json?restrict_sr=true&include_over_18=on`;
+  const url = `https://www.reddit.com/r/${subreddit}/${category}.json?restrict_sr=true&include_over_18=on`;
 
   const getSubreddit = async () => {
     setIsLoading(true);
@@ -78,7 +68,7 @@ export default function Home() {
       });
       setPosts(data.data.children);
     } catch (e) {
-      console.log(e.message);
+      setErr(e.message);
     } finally {
       setIsLoading(false);
     }
@@ -109,11 +99,12 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <nav className="navbar bg-base-300 w-full sticky top-0 z-10">
-        {err && <h2>{err}</h2>}
         <div>
-          <a className="btn btn-ghost normal-case text-xl text-slate-400">
-            Reddit Viewer
-          </a>
+          <Link href="#">
+            <a className="btn btn-ghost normal-case text-xl rounded-full">
+              Reddit Viewer
+            </a>
+          </Link>
         </div>
 
         <div>
@@ -127,7 +118,12 @@ export default function Home() {
             />
           </form>
         </div>
+
+        <div>{catButtons}</div>
       </nav>
+      {err && (
+        <span className="alert alert-error rounded-none shadow-lg">{err}</span>
+      )}
       <main className="px-4 p-20 flex flex-column justify-center">
         {/* <div>Current Query: {query}</div>
         <div>Current Sub: {subreddit}</div>
