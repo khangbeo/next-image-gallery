@@ -60,11 +60,6 @@ const Post = ({ post }) => {
     return !isImage(url) && !isRedditVideo(url) && !isYoutube(url);
   }
 
-  if (isMedia(post.url)) {
-    console.log(post);
-  }
-
-  console.log(isMedia(post.url));
   /** make a clickable post - done
    *
    * Data to get:
@@ -89,7 +84,7 @@ const Post = ({ post }) => {
           </div>
         </a>
         <div className="card-body">
-          <h2 className="card-title text-base">{post.title}</h2>
+          <h2 className="card-title text-neutral-content">{post.title}</h2>
         </div>
       </article>
     )

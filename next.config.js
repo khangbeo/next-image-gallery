@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  image: {
+  images: {
     domains: ["i.redd.it"],
   },
 };
