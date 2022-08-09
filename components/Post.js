@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 const Thumbnail = ({ post }) => {
   const { url, title } = post;
   return (

@@ -22,6 +22,8 @@ import Link from "next/link";
  * TODO: clean up code and move into appropriate component
  * TODO: fetch is returning same data for filter buttons, figure out how to clean up so we get new data on filter
  * TODO: add infinite scrolling
+ * TODO: search by user
+ * TODO: add a README with makeareadme.com
  *
  */
 
