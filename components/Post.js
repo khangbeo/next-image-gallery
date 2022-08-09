@@ -2,31 +2,31 @@
 
 const Thumbnail = ({ post }) => {
   const { url, thumbnail_width, thumbnail_height, title } = post;
-  return (
-    <img
-      src={url}
-      width={thumbnail_width}
-      height={thumbnail_height}
-      alt={title}
-    />
-  );
+  return <img src={url} alt={title} />;
 };
 
 const YoutubeEmbed = ({ post }) => {
   const {
     secure_media: {
-      oembed: { thumbnail_url, thumbnail_height, thumbnail_width, title },
+      oembed: { thumbnail_url, thumbnail_height, thumbnail_width },
+    },
+  } = post;
+  return <iframe className="h-full" src={thumbnail_url}></iframe>;
+};
+
+const RedditVideo = ({ post }) => {
+  const {
+    secure_media: {
+      reddit_video: { fallback_url },
     },
   } = post;
   return (
-    <img
-      src={thumbnail_url}
-      width={post.thumbnail_width}
-      height={post.thumbnail_height}
-      alt={title}
-    />
+    <video className="h-full" autoPlay={true} controls alt={post.title}>
+      <source src={fallback_url} type="video/mp4" />
+    </video>
   );
 };
+
 const Post = ({ post }) => {
   let base_url = "https://reddit.com";
 
@@ -34,14 +34,23 @@ const Post = ({ post }) => {
     return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
   }
 
-  // function isYoutube(url) {
-  //   return /^(?:https?:\/\/)?(?:(?:www\.)?youtube.com\/watch\?v=|youtu.be\/)(\w+)$/.test(
-  //     url
-  //   );
-  // }
-  // if (isImage(post.url)) {
-  //   console.log(post);
-  // }
+  function isYoutube(url) {
+    return /^(?:https?:\/\/)?(?:(?:www\.)?youtube.com\/watch\?v=|youtu.be\/)(\w+)$/.test(
+      url
+    );
+  }
+
+  function isRedditVideo(url) {
+    return /^(?:https?:\/\/)?(?:(?:v\.)?redd.it\/)/.test(url);
+  }
+
+  function isMedia(url) {
+    return !isImage(url) && !isRedditVideo(url) && !isYoutube(url);
+  }
+
+  if (isYoutube(post.url)) {
+    console.log(post);
+  }
 
   /** make a clickable post
    *
@@ -55,14 +64,20 @@ const Post = ({ post }) => {
    */
 
   return (
-    <article>
-      {isImage(post.url) && (
+    !isMedia(post.url) && (
+      <article className="card card-compact w-72 bg-neutral shadow-xl">
         <a href={base_url + post.permalink} target="_blank" rel="noreferrer">
-          <h3>{post.title}</h3>
-          <Thumbnail post={post} />
+          <div className="h-96 overflow-hidden">
+            {isImage(post.url) && <Thumbnail post={post} />}
+            {isYoutube(post.url) && <YoutubeEmbed post={post} />}
+            {isRedditVideo(post.url) && <RedditVideo post={post} />}
+          </div>
+          <div className="card-body">
+            <h2 className="card-title text-base">{post.title}</h2>
+          </div>
         </a>
-      )}
-    </article>
+      </article>
+    )
   );
 };
 
