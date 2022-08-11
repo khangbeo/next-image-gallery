@@ -23,9 +23,13 @@ import Link from "next/link";
  *  need to make a function to check if subreddit/user exists,
  *  also a function to check if the search value is valid
  * TODO: fetch is returning same data for filter buttons, figure out how to clean up so we get new data on filter
- * TODO: add infinite scrolling
+ * TODO: add infinite scrolling, have an array to store initial data, then add more as the user scrolls down
  * TODO: search by user
  * TODO: add a README with makeareadme.com
+ * TODO: fix a bug where there's no reddit_video
+ * TODO: add error handling for cases where there's no videos or images, but only text posts
+ * TODO: add meaningful error messages
+ * TODO: add text overflow to cut off texts after a certain length
  *
  */
 
@@ -114,7 +118,7 @@ export default function Home() {
           />
         </form>
 
-        <div>{catButtons}</div>
+        {posts.length > 0 && <div>{catButtons}</div>}
       </nav>
       {err && (
         <span className="alert alert-error rounded-none shadow-lg">{err}</span>
@@ -125,8 +129,13 @@ export default function Home() {
         <div>Current Url: {url}</div>
 
         <div>Results</div> */}
-
-        {isLoading ? <p>loading...</p> : <Posts posts={posts} />}
+        {isLoading ? (
+          <p>loading...</p>
+        ) : posts.length > 0 ? (
+          <Posts posts={posts} />
+        ) : (
+          <p>Start Searching</p>
+        )}
       </main>
 
       <footer className="flex flex-col sm:flex-row text-sm justify-between items-center p-3 bg-neutral text-neutral-content">
