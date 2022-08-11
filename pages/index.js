@@ -118,7 +118,7 @@ export default function Home() {
           />
         </form>
 
-        {posts.length > 0 && <div>{catButtons}</div>}
+        {/* {posts.length > 0 && <div>{catButtons}</div>} */}
       </nav>
       {err && (
         <span className="alert alert-error rounded-none shadow-lg">{err}</span>

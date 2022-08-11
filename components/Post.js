@@ -72,7 +72,7 @@ const Post = ({ post }) => {
 
   return (
     !isMedia(post.url) && (
-      <article className="card card-compact w-72 bg-neutral shadow-xl">
+      <article className="card card-compact w-72 sm:w-96 bg-neutral shadow-xl">
         <a href={base_url + post.permalink} target="_blank" rel="noreferrer">
           <div className="h-80 overflow-hidden ">
             {isImage(post.url) && <Thumbnail post={post} />}
