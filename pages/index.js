@@ -127,7 +127,7 @@ export default function Home() {
       {err && (
         <span className="alert alert-error rounded-none shadow-lg">{err}</span>
       )}
-      <main className="grow px-4 p-20 flex flex-column justify-center">
+      <main className="grow p-4 flex flex-column justify-center">
         {/* <div>Current Query: {query}</div>
         <div>Current Sub: {subreddit}</div>
         <div>Current Url: {url}</div>
