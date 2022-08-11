@@ -2,7 +2,7 @@ import Post from "./Post";
 
 const Posts = ({ posts }) => {
   return (
-    <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 justify-items-center">
+    <div className="columns-2 md:columns-3 lg:columns-4 w-full">
       {posts.map((post, index) => (
         // change id to a better id
         <Post key={index} post={post.data} />

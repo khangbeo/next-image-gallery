@@ -2,7 +2,7 @@ const Thumbnail = ({ post }) => {
   const { url, title } = post;
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} className="h-full w-full object-contain" alt={title} />
+    <img src={url} alt={title} />
   );
 };
 
@@ -25,10 +25,10 @@ const YoutubeEmbed = ({ post }) => {
 };
 
 const RedditVideo = ({ post }) => {
-  console.log(post);
   return (
-    <video className="h-full w-full" autoPlay={true} controls alt={post.title}>
+    <video autoPlay={true} controls alt={post.title}>
       <source
+        className="w-full h-full"
         src={post.secure_media?.reddit_video.fallback_url}
         type="video/mp4"
       />
@@ -72,19 +72,23 @@ const Post = ({ post }) => {
 
   return (
     !isMedia(post.url) && (
-      <article className="card card-compact w-72 sm:w-96 bg-neutral shadow-xl">
+      <article className="card card-compact card-bordered mb-4 shadow-lg hover:shadow-2xl group hover:-translate-y-2 transform-gpu duration-500">
         <a href={base_url + post.permalink} target="_blank" rel="noreferrer">
-          <div className="h-80 overflow-hidden ">
+          {/* 
+
+            don't really need title here, should move title to the modal
+
+          <div className="invisible group-hover:visible delay-100 transition ease-in-out absolute top-0 left-0 right-0 px-4 py-2 bg-gray-800 opacity-90">
+            <h2 className="card-title text-neutral-content font-light block truncate ...">
+              {post.title}
+            </h2>
+          </div> */}
+          <figure>
             {isImage(post.url) && <Thumbnail post={post} />}
             {isYoutube(post.url) && <YoutubeEmbed post={post} />}
             {isRedditVideo(post.url) && <RedditVideo post={post} />}
-          </div>
+          </figure>
         </a>
-        <div className="card-body bg-[#863958]">
-          <h2 className="card-title text-neutral-content font-light">
-            {post.title}
-          </h2>
-        </div>
       </article>
     )
   );

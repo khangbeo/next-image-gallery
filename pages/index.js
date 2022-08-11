@@ -26,10 +26,9 @@ import Link from "next/link";
  * TODO: add infinite scrolling, have an array to store initial data, then add more as the user scrolls down
  * TODO: search by user
  * TODO: add a README with makeareadme.com
- * TODO: fix a bug where there's no reddit_video
  * TODO: add error handling for cases where there's no videos or images, but only text posts
  * TODO: add meaningful error messages
- * TODO: add text overflow to cut off texts after a certain length
+ * TODO: change current grid layout to masonry
  *
  */
 
@@ -57,8 +56,8 @@ export default function Home() {
   ));
 
   const filterItem = (curCat) => {
-    const newItem = categories.find((newCat) => newCat === curCat);
-    setCategory(newItem);
+    setCategory(curCat);
+
     if (category) {
       setErr(null);
       getSubreddit();
@@ -67,16 +66,21 @@ export default function Home() {
     }
   };
 
-  const url = `https://www.reddit.com/r/${subreddit}/${category}.json?restrict_sr=true&include_over_18=on`;
-
   const getSubreddit = async () => {
     setIsLoading(true);
     try {
+      const url = `https://www.reddit.com/r/${subreddit}/${category}.json?restrict_sr=true&include_over_18=on`;
       const res = await fetch(url, { signal });
+
       const data = await res.json();
+      if (!res.ok) {
+        const error = (data && data.message) || res.status;
+        return Promise.reject(error);
+      }
       setPosts(data.data.children);
     } catch (e) {
-      setErr(e.message);
+      setErr(`Error: ${subreddit} does not exist!`);
+      console.log(`There was an error: ${e}`);
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +122,7 @@ export default function Home() {
           />
         </form>
 
-        {/* {posts.length > 0 && <div>{catButtons}</div>} */}
+        {posts.length > 0 && <div>{catButtons}</div>}
       </nav>
       {err && (
         <span className="alert alert-error rounded-none shadow-lg">{err}</span>
@@ -131,7 +135,7 @@ export default function Home() {
         <div>Results</div> */}
         {isLoading ? (
           <p>loading...</p>
-        ) : posts.length > 0 ? (
+        ) : posts.length > 0 && !err ? (
           <Posts posts={posts} />
         ) : (
           <p className="text-6xl p-6">
