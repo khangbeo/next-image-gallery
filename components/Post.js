@@ -15,12 +15,7 @@ const YoutubeEmbed = ({ post }) => {
     /(?:https?:\/\/)?(www.youtube.com\/embed\/)(\w+)(\?\w+\=\w+\&\w+\;\w+\=\w)/
   );
   return (
-    <iframe
-      className="h-full w-full"
-      height="315"
-      width="560"
-      src={`${newUrl}&autoplay=1`}
-    ></iframe>
+    <iframe height="315" width="560" src={`${newUrl}&autoplay=1`}></iframe>
   );
 };
 
@@ -72,7 +67,7 @@ const Post = ({ post }) => {
 
   return (
     !isMedia(post.url) && (
-      <article className="card card-compact card-bordered mb-4 shadow-lg hover:shadow-2xl group hover:-translate-y-2 transform-gpu duration-500">
+      <article className="card card-compact card-bordered mb-4 shadow-lg hover:shadow-2xl group transform-gpu duration-500">
         <a href={base_url + post.permalink} target="_blank" rel="noreferrer">
           {/* 
 
