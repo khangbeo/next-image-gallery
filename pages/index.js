@@ -134,7 +134,9 @@ export default function Home() {
         ) : posts.length > 0 ? (
           <Posts posts={posts} />
         ) : (
-          <p>Start Searching</p>
+          <p className="text-6xl p-6">
+            Get Images and Videos from your favorite subreddits!
+          </p>
         )}
       </main>
 

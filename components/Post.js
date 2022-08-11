@@ -40,7 +40,7 @@ const Post = ({ post }) => {
   let base_url = "https://reddit.com";
 
   function isImage(url) {
-    return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
+    return /\.(jpg|jpeg|png|webp|avif|gif|svg|gfycat)$/.test(url);
   }
 
   function isYoutube(url) {
