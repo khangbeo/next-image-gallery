@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
     return (
         <footer className="flex flex-col sm:flex-row text-sm justify-between items-center p-3 bg-neutral text-neutral-content">
