@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Posts from "../components/Posts";
 import Link from "next/link";
-import Footer from './components/Footer'
+import Footer from '../components/Footer'
 /**
  * first find out how to get data from reddit api - done
  * then make a request - done
