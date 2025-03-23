@@ -1,150 +1,341 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Posts from "../components/Posts";
 import Link from "next/link";
-import Footer from '../components/Footer'
-/**
- * first find out how to get data from reddit api - done
- * then make a request - done
- * how? using axios - done
- * we're only making a GET request so it'll be easy - done
- * I want a form to search for a subreddit - done
- * when the form is submitted, it will make a request to the reddit api with the form's value - done
- * then get the response and store it in the useState hook - done
- * it will have a loading, error, and actual content displayed - done
- * along with infinite scrolling/loading?
- * clicking on an image opens a modal with more detailed image
- *
- * Nice to have:
- * save the subreddit in a store and show it under the search as a recent search item
- * also have popular subreddits somewhere on the app
- *
- * TODO: move data fetching and storing logic to a custom hook
- * TODO: add context or reducer
- * TODO: clean up code and move into appropriate component
- *  need to make a function to check if subreddit/user exists,
- *  also a function to check if the search value is valid
- * TODO: fetch is returning same data for filter buttons, figure out how to clean up so we get new data on filter
- * TODO: add infinite scrolling, have an array to store initial data, then add more as the user scrolls down
- * TODO: search by user
- * TODO: add a README with makeareadme.com
- * TODO: add error handling for cases where there's no videos or images, but only text posts
- * TODO: add meaningful error messages
- * TODO: change current grid layout to masonry
- *
- */
+import Footer from "../components/Footer";
+import SkeletonLoader from "../components/SkeletonLoader";
+import Navbar from "../components/Navbar";
+import { useRouter } from "next/router";
 
 export default function Home() {
-  const [posts, setPosts] = useState([]);
-  const [subreddit, setSubreddit] = useState("");
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("hot");
-  const [isLoading, setIsLoading] = useState(null);
-  const [err, setErr] = useState(null);
-  const controller = new AbortController();
-  const { signal } = controller;
-  const categories = ["hot", "top", "new", "best", "rising"];
+    const router = useRouter();
+    const [posts, setPosts] = useState([]);
+    const [subreddit, setSubreddit] = useState("");
+    const [query, setQuery] = useState("");
+    const [category, setCategory] = useState("hot");
+    const [isLoading, setIsLoading] = useState(null);
+    const [err, setErr] = useState(null);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const observer = useRef();
+    const lastPostRef = useRef();
+    const abortControllerRef = useRef(null);
+    const categories = ["hot", "top", "new", "best", "rising"];
+    const [viewMode, setViewMode] = useState("grid");
+    const [imageSize, setImageSize] = useState("medium");
 
-  const catButtons = categories.map((cat) => (
-    <button
-      className={`btn text-neutral-content ${
-        category === cat && "btn-active"
-      } rounded-full m-2 btn-sm md:btn-md`}
-      key={cat}
-      onClick={() => filterItem(cat)}
-    >
-      {cat}
-    </button>
-  ));
+    const filterItem = async (curCat) => {
+        setIsLoading(true); // Set loading state for category change
+        setCategory(curCat);
+        setPage(1);
+        setPosts([]);
+        setHasMore(true);
+        setErr(null);
 
-  const filterItem = (curCat) => {
-    setCategory(curCat);
+        if (subreddit) {
+            try {
+                const cleanSubreddit = subreddit.trim().toLowerCase();
+                if (!cleanSubreddit) {
+                    throw new Error("Please enter a subreddit name");
+                }
 
-    if (category) {
-      setErr(null);
-      getSubreddit();
-    } else {
-      setErr("Enter a subreddit");
-    }
-  };
+                const baseUrl = "https://www.reddit.com";
+                const endpoint = `/r/${encodeURIComponent(
+                    cleanSubreddit
+                )}/${curCat}.json`;
+                const params = new URLSearchParams({
+                    restrict_sr: "true",
+                    include_over_18: "on",
+                    limit: "25",
+                });
 
-  const getSubreddit = async () => {
-    setIsLoading(true);
-    try {
-      const url = `https://www.reddit.com/r/${subreddit}/${category}.json?restrict_sr=true&include_over_18=on`;
-      const res = await fetch(url, { signal });
+                const url = `${baseUrl}${endpoint}?${params.toString()}`;
 
-      const data = await res.json();
-      if (!res.ok) {
-        const error = (data && data.message) || res.status;
-        return Promise.reject(error);
-      }
-      setPosts(data.data.children);
-    } catch (e) {
-      setErr(`Error: ${subreddit} does not exist!`);
-      console.log(`There was an error: ${e}`);
-    } finally {
-      setIsLoading(false);
-    }
-    return () => controller.abort();
-  };
+                if (abortControllerRef.current) {
+                    abortControllerRef.current.abort();
+                }
+                abortControllerRef.current = new AbortController();
 
-  const handleChange = ({ target }) => {
-    setQuery(target.value);
-    setSubreddit(target.value);
-    setErr(null);
-  };
+                const res = await fetch(url, {
+                    signal: abortControllerRef.current.signal,
+                    headers: {
+                        "User-Agent": "RedditViewer/1.0.0",
+                    },
+                });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (query !== "" && query.length > 0) {
-      setQuery("");
-      getSubreddit();
-    } else {
-      setErr("Enter a subreddit");
-    }
-  };
+                const data = await res.json();
 
-  return (
-    <div className="bg-base-100 flex flex-col min-h-screen">
-      <nav className="navbar flex flex-col md:flex-row bg-neutral justify-center w-full sticky top-0 z-10 shadow-2xl">
-        <Link href="#">
-          <a className="btn btn-ghost normal-case text-neutral-content text-xl rounded-full">
-            Reddit Viewer
-          </a>
-        </Link>
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        throw new Error(
+                            `Subreddit "${cleanSubreddit}" not found`
+                        );
+                    } else if (res.status === 403) {
+                        throw new Error(
+                            `Access to "${cleanSubreddit}" is forbidden`
+                        );
+                    } else {
+                        throw new Error(
+                            data.message ||
+                                `Error ${res.status}: ${res.statusText}`
+                        );
+                    }
+                }
 
-        <form className="form-control w-64 sm:w-96" onSubmit={handleSubmit}>
-          <input
-            className="input m-2 input-bordered w-11/12 rounded-full"
-            placeholder="Search subreddit"
-            type="text"
-            value={query}
-            onChange={handleChange}
-          />
-        </form>
+                if (!data.data || !data.data.children) {
+                    throw new Error("Invalid response format from Reddit API");
+                }
 
-        {posts.length > 0 && <div>{catButtons}</div>}
-      </nav>
-      {err && (
-        <span className="alert alert-error rounded-none shadow-lg">{err}</span>
-      )}
-      <main className="grow p-4 flex flex-column justify-center">
-        {/* <div>Current Query: {query}</div>
-        <div>Current Sub: {subreddit}</div>
-        <div>Current Url: {url}</div>
+                const newPosts = data.data.children;
+                const validPosts = newPosts.filter(
+                    (post) => post && post.data && !isMedia(post.data.url)
+                );
 
-        <div>Results</div> */}
-        {isLoading ? (
-          <p>loading...</p>
-        ) : posts.length > 0 && !err ? (
-          <Posts posts={posts} />
-        ) : (
-          <p className="text-6xl p-6">
-            Get Images and Videos from your favorite subreddits!
-          </p>
-        )}
-      </main>
-      <Footer />
-    </div>
-  );
+                if (validPosts.length === 0) {
+                    throw new Error(
+                        `No media posts found in "${cleanSubreddit}"`
+                    );
+                }
+
+                setPosts(validPosts);
+                setHasMore(newPosts.length === 25);
+                setPage(2);
+                setErr(null);
+            } catch (e) {
+                if (e.name !== "AbortError") {
+                    setErr(e.message || `Error: ${subreddit} does not exist!`);
+                    console.error(`Fetch error:`, e);
+                }
+                setHasMore(false);
+            } finally {
+                setIsLoading(false);
+            }
+        } else {
+            setErr("Enter a subreddit");
+            setIsLoading(false);
+        }
+    };
+
+    const getSubreddit = async (isLoadMore = false) => {
+        if (!isLoadMore) return; // Only handle pagination here
+
+        // Abort previous request if it exists
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
+        setIsLoadingMore(true);
+
+        try {
+            const cleanSubreddit = subreddit.trim().toLowerCase();
+            if (!cleanSubreddit) {
+                throw new Error("Please enter a subreddit name");
+            }
+
+            const baseUrl = "https://www.reddit.com";
+            const endpoint = `/r/${encodeURIComponent(
+                cleanSubreddit
+            )}/${category}.json`;
+            const params = new URLSearchParams({
+                restrict_sr: "true",
+                include_over_18: "on",
+                limit: "25",
+            });
+
+            // Only add after parameter for categories that support it
+            if (["new", "top"].includes(category) && posts.length > 0) {
+                params.append(
+                    "after",
+                    posts[posts.length - 1]?.data?.name || ""
+                );
+            }
+
+            const url = `${baseUrl}${endpoint}?${params.toString()}`;
+
+            const res = await fetch(url, {
+                signal: abortControllerRef.current.signal,
+                headers: {
+                    "User-Agent": "RedditViewer/1.0.0",
+                },
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(
+                    data.message || `Error ${res.status}: ${res.statusText}`
+                );
+            }
+
+            if (!data.data || !data.data.children) {
+                throw new Error("Invalid response format from Reddit API");
+            }
+
+            const newPosts = data.data.children;
+            const validPosts = newPosts.filter(
+                (post) => post && post.data && !isMedia(post.data.url)
+            );
+
+            // Check for duplicates before adding new posts
+            const existingIds = new Set(posts.map((post) => post.data.id));
+            const uniqueNewPosts = validPosts.filter(
+                (post) => !existingIds.has(post.data.id)
+            );
+
+            if (uniqueNewPosts.length > 0) {
+                setPosts((prev) => [...prev, ...uniqueNewPosts]);
+                setHasMore(newPosts.length === 25);
+                setPage((prev) => prev + 1);
+                setErr(null);
+            } else {
+                setHasMore(false);
+            }
+        } catch (e) {
+            if (e.name !== "AbortError") {
+                setErr(e.message || `Error: ${subreddit} does not exist!`);
+                console.error(`Fetch error:`, e);
+            }
+            setHasMore(false);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
+    // Helper function to check if URL is media
+    const isMedia = (url) => {
+        if (!url) return true;
+        const mediaExtensions =
+            /\.(jpg|jpeg|png|webp|avif|gif|svg|gfycat|mp4|webm)$/i;
+        const isRedditVideo = /^(?:https?:\/\/)?(?:(?:v\.)?redd.it\/)/i;
+        const isYoutube =
+            /^(?:https?:\/\/)?(?:(?:www\.)?youtube.com\/watch\?v=|youtu.be\/)(\w+)$/i;
+        return (
+            !mediaExtensions.test(url) &&
+            !isRedditVideo.test(url) &&
+            !isYoutube.test(url)
+        );
+    };
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        const options = {
+            root: null,
+            rootMargin: "20px",
+            threshold: 0.1,
+        };
+
+        observer.current = new IntersectionObserver((entries) => {
+            const [target] = entries;
+            if (target.isIntersecting && hasMore && !isLoadingMore) {
+                getSubreddit(true);
+            }
+        }, options);
+
+        if (lastPostRef.current) {
+            observer.current.observe(lastPostRef.current);
+        }
+
+        return () => {
+            if (observer.current) {
+                observer.current.disconnect();
+            }
+        };
+    }, [posts, hasMore, isLoadingMore]);
+
+    const handleChange = ({ target }) => {
+        setQuery(target.value);
+        setSubreddit(target.value);
+        setErr(null);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!query.trim()) return;
+
+        try {
+            const response = await fetch(
+                `https://www.reddit.com/r/${query}/hot.json?limit=1`
+            );
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            router.push(`/r/${query}`);
+        } catch (err) {
+            setErr(err.message);
+        }
+    };
+
+    const handleReset = () => {
+        setSubreddit("");
+        setQuery("");
+        setPosts([]);
+        setCategory("hot");
+        setPage(1);
+        setHasMore(true);
+        setErr(null);
+        setIsLoading(false);
+        setIsLoadingMore(false);
+    };
+
+    return (
+        <div className="min-h-screen bg-base-100 flex flex-col">
+            <Navbar
+                category={category}
+                filterItem={filterItem}
+                handleChange={handleChange}
+                handleSubmit={handleSubmit}
+                subreddit={subreddit}
+                query={query}
+                onReset={handleReset}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                imageSize={imageSize}
+                setImageSize={setImageSize}
+            />
+            <main className="flex-1 container mx-auto px-4 py-8">
+                {!subreddit ? (
+                    <div className="text-center">
+                        <h1 className="text-4xl font-bold mb-8">
+                            Reddit Viewer
+                        </h1>
+                        <p className="text-lg text-base-content/70 mb-8">
+                            Enter a subreddit name to start browsing
+                        </p>
+                        {err && <p className="text-error mb-4">{err}</p>}
+                    </div>
+                ) : err ? (
+                    <div className="text-center text-red-500 text-xl">
+                        {err}
+                    </div>
+                ) : (
+                    <>
+                        {isLoading ? (
+                            <SkeletonLoader
+                                viewMode={viewMode}
+                                imageSize={imageSize}
+                            />
+                        ) : (
+                            <Posts
+                                posts={posts}
+                                lastPostRef={lastPostRef}
+                                isLoadingMore={isLoadingMore}
+                                viewMode={viewMode}
+                                imageSize={imageSize}
+                            />
+                        )}
+                    </>
+                )}
+            </main>
+            <Footer />
+        </div>
+    );
 }
